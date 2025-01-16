@@ -15,11 +15,13 @@ class TestPotTranslator:
         mock_client = Mock()
         mock_client.chat.completions.create.return_value = mock_response
         
-        mocker.patch('openai.OpenAI', return_value=mock_client)
+        # Створюємо мок для конструктора OpenAI
+        mock_openai = mocker.patch('openai.OpenAI')
+        mock_openai.return_value = mock_client
         return mock_client
 
     @pytest.fixture
-    def translator(self, mock_openai_client):
+    def translator(self):
         with patch.dict(os.environ, {
             'OPENAI_API_KEY': 'test-key',
             'OPENAI_MODEL': 'gpt-4o'
@@ -43,14 +45,14 @@ msgstr ""
         pot_file.write_text(content)
         return str(pot_file)
 
-    def test_translate_batch(self, translator):
+    def test_translate_batch(self, translator, mock_openai_client):
         texts = ["Hello", "World"]
         result = translator.translate_batch(texts, "uk")
         assert isinstance(result, list)
         assert len(result) == 2
         assert result == ["Привіт", "Світ"]
 
-    def test_translate_pot_file(self, translator, sample_pot_file, tmp_path):
+    def test_translate_pot_file(self, translator, sample_pot_file, mock_openai_client, tmp_path):
         with patch('os.makedirs'):
             target_language = "uk"
             output_file = translator.translate_pot_file(sample_pot_file, target_language)

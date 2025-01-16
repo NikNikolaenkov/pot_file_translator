@@ -35,6 +35,10 @@ class PotTranslator:
                         {"role": "user", "content": joined_text}
                     ]
                 )
+                
+                if not hasattr(response.choices[0], 'message'):
+                    raise ValueError("Invalid response format")
+                    
                 translated_batch = response.choices[0].message.content.strip().split(" ||| ")
                 
                 if len(translated_batch) != len(texts):
