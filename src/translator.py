@@ -43,7 +43,7 @@ class PotTranslator:
                     ]
                 )
                 
-                if not hasattr(response.choices[0], 'message'):
+                if not response.choices or not response.choices[0].message:
                     raise ValueError("Invalid response format")
                     
                 translated_batch = response.choices[0].message.content.strip().split(" ||| ")
@@ -57,6 +57,8 @@ class PotTranslator:
                 if attempt == Config.MAX_RETRIES - 1:
                     return texts
                 time.sleep(Config.WAIT_TIME)
+        
+        return texts
 
     def translate_pot_file(self, input_file: str, target_language: str) -> str:
         """Translate a POT file to the target language."""
