@@ -38,13 +38,10 @@ pip install -r requirements.txt
 
 # Setup environment
 cp .env.example .env
-# Edit .env with your settings
+# Edit .env with your settings (including FLASK_PORT if needed)
 
-# Run application (default port 5000)
+# Run application
 flask run
-
-# Or run on custom port
-FLASK_PORT=8080 flask run
 ```
 
 ### 2. Docker Installation
@@ -54,13 +51,10 @@ FLASK_PORT=8080 flask run
 git clone [repository-url]
 cd pot-translator
 cp .env.example .env
-# Edit .env with your settings
+# Edit .env with your settings (including FLASK_PORT if needed)
 
-# Run with Docker Compose (default port 5000)
+# Run with Docker Compose
 docker-compose up --build
-
-# Or run on custom port
-FLASK_PORT=8080 docker-compose up --build
 ```
 
 ## API Usage Guide
@@ -224,10 +218,22 @@ Available settings:
 | OPENAI_MODEL | OpenAI model to use | gpt-4o |
 | FLASK_ENV | Environment mode | development |
 | FLASK_DEBUG | Debug mode | 1 |
-| FLASK_PORT | Server port | 5000 |
+| FLASK_PORT | Application port number | 5000 |
 | MAX_RETRIES | Max translation retries | 5 |
 | WAIT_TIME | Retry wait time (seconds) | 10 |
 | BATCH_SIZE | Translation batch size | 10 |
+
+You can change the port by:
+1. Setting FLASK_PORT in your .env file:
+```
+FLASK_PORT=8080
+```
+2. Or using environment variable when running:
+```bash
+FLASK_PORT=8080 flask run
+# or
+FLASK_PORT=8080 docker-compose up --build
+```
 
 ## Project Structure
 ```
@@ -272,11 +278,8 @@ python -m pytest tests/test_translator.py -v
 
 ### Docker Commands
 ```bash
-# Build and run with docker-compose (default port)
+# Build and run with docker-compose
 docker-compose up --build
-
-# Run on custom port
-FLASK_PORT=8080 docker-compose up --build
 
 # Stop services
 docker-compose down
@@ -284,11 +287,8 @@ docker-compose down
 # Build image separately
 docker build -t pot-translator .
 
-# Run container separately (default port)
-docker run -p 5000:5000 -e OPENAI_API_KEY=your-api-key pot-translator
-
-# Run container on custom port
-docker run -p 8080:5000 -e OPENAI_API_KEY=your-api-key -e FLASK_PORT=8080 pot-translator
+# Run container separately
+docker run -p ${FLASK_PORT:-5000}:5000 -e OPENAI_API_KEY=your-api-key pot-translator
 ```
 
 ## Troubleshooting
@@ -315,8 +315,8 @@ docker run -p 8080:5000 -e OPENAI_API_KEY=your-api-key -e FLASK_PORT=8080 pot-tr
 
 4. Port Issues:
    ```
-   Error: Port 5000 already in use
-   Solution: Set different port in .env file or use FLASK_PORT environment variable
+   Error: Port already in use
+   Solution: Change FLASK_PORT in .env file or set it as environment variable
    ```
 
 ## License
