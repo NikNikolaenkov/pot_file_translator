@@ -1,9 +1,32 @@
 from flask import Flask, request, send_file, jsonify
 import os
+import requests
+from urllib.parse import urlparse
 from src.translator import PotTranslator
 from src.config import Config
 
 app = Flask(__name__)
+
+def download_file_from_url(url: str) -> str:
+    """Download file from URL and save it locally."""
+    try:
+        response = requests.get(url, timeout=30)
+        response.raise_for_status()
+        
+        # Get filename from URL or use default
+        filename = os.path.basename(urlparse(url).path)
+        if not filename.endswith('.pot'):
+            filename = 'downloaded.pot'
+            
+        os.makedirs(Config.UPLOAD_FOLDER, exist_ok=True)
+        file_path = os.path.join(Config.UPLOAD_FOLDER, filename)
+        
+        with open(file_path, 'wb') as f:
+            f.write(response.content)
+            
+        return file_path
+    except Exception as e:
+        raise ValueError(f"Failed to download file from URL: {str(e)}")
 
 @app.route('/translate', methods=['POST'])
 def translate():
@@ -17,16 +40,25 @@ def translate():
         if not target_language or len(target_language) != 2:
             return jsonify({"error": "Invalid target language format"}), 400
 
-        if 'file' not in request.files:
-            return jsonify({"error": "No file provided"}), 400
+        file_url = request.form.get('file_url')
+        if file_url:
+            # Завантаження файлу за URL
+            try:
+                input_path = download_file_from_url(file_url)
+            except ValueError as e:
+                return jsonify({"error": str(e)}), 400
+        else:
+            # Звичайне завантаження файлу
+            if 'file' not in request.files:
+                return jsonify({"error": "No file provided and no file_url specified"}), 400
 
-        file = request.files['file']
-        if not file.filename.endswith('.pot'):
-            return jsonify({"error": "Invalid file format"}), 400
+            file = request.files['file']
+            if not file.filename.endswith('.pot'):
+                return jsonify({"error": "Invalid file format"}), 400
 
-        os.makedirs(Config.UPLOAD_FOLDER, exist_ok=True)
-        input_path = os.path.join(Config.UPLOAD_FOLDER, file.filename)
-        file.save(input_path)
+            os.makedirs(Config.UPLOAD_FOLDER, exist_ok=True)
+            input_path = os.path.join(Config.UPLOAD_FOLDER, file.filename)
+            file.save(input_path)
 
         translator = PotTranslator(api_key=api_key, model=model)
         output_file = translator.translate_pot_file(input_path, target_language)
