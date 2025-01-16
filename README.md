@@ -15,37 +15,45 @@ Nikolaenkov (NikNikolaenkov@gmail.com)
 - 📊 Progress tracking and saving
 - 🐳 Docker support
 
-Clone repository
+## Installation
+
+### 1. Local Installation
+
+```bash
+# Clone repository
 git clone [repository-url]
 cd pot-translator
-Create virtual environment
+
+# Create virtual environment
 python -m venv venv
-Activate virtual environment
-source venv/bin/activate # Linux/Mac
-venv\Scripts\activate # Windows
-Install dependencies
+
+# Activate virtual environment
+source venv/bin/activate  # Linux/Mac
+venv\Scripts\activate     # Windows
+
+# Install dependencies
 pip install -r requirements.txt
-Setup environment
+
+# Setup environment
 cp .env.example .env
-Edit .env with your settings
-Run application
+# Edit .env with your settings
+
+# Run application
 flask run
+```
 
 ### 2. Docker Installation
 
-1. Clone the repository
-2. Build Docker image
-docker build -t pot-translator .
-3. Run Docker container
-docker run -p 5000:5000 pot-translator
-
-Clone and setup
+```bash
+# Clone and setup
 git clone [repository-url]
 cd pot-translator
 cp .env.example .env
-Edit .env with your settings
-Run with Docker
+# Edit .env with your settings
+
+# Run with Docker Compose
 docker-compose up --build
+```
 
 ## API Usage Guide
 
@@ -71,7 +79,6 @@ The service provides a single endpoint for translation:
 curl -X POST http://localhost:5000/translate \
      -F "api_key=your-api-key" \
      -F "target_language=uk" \
-     -F "model=gpt-4o" \
      -F "file=@path/to/your/main.pot"
 ```
 
@@ -79,25 +86,19 @@ curl -X POST http://localhost:5000/translate \
 ```python
 import requests
 
-# API endpoint
 url = 'http://localhost:5000/translate'
 
-# Prepare files and data
 files = {
     'file': ('main.pot', open('path/to/your/main.pot', 'rb'), 'application/x-gettext')
 }
 data = {
     'api_key': 'your-api-key',
-    'target_language': 'uk',
-    'model': 'gpt-4o'  # optional
+    'target_language': 'uk'
 }
 
-# Send request
 response = requests.post(url, files=files, data=data)
 
-# Handle response
 if response.status_code == 200:
-    # Save translated file
     with open('translated.po', 'wb') as f:
         f.write(response.content)
     print("Translation successful!")
@@ -111,7 +112,6 @@ const formData = new FormData();
 formData.append('file', potFile);  // potFile is your .pot file
 formData.append('api_key', 'your-api-key');
 formData.append('target_language', 'uk');
-formData.append('model', 'gpt-4');  // optional
 
 fetch('http://localhost:5000/translate', {
     method: 'POST',
@@ -122,7 +122,6 @@ fetch('http://localhost:5000/translate', {
     return response.json().then(err => Promise.reject(err));
 })
 .then(blob => {
-    // Handle successful response
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
@@ -159,24 +158,66 @@ Available settings:
 | Variable | Description | Default |
 |----------|-------------|---------|
 | OPENAI_API_KEY | Your OpenAI API key | required |
-| OPENAI_MODEL | OpenAI model to use | gpt-4 |
+| OPENAI_MODEL | OpenAI model to use | gpt-4o |
 | FLASK_ENV | Environment mode | development |
 | FLASK_DEBUG | Debug mode | 1 |
 | MAX_RETRIES | Max translation retries | 5 |
 | WAIT_TIME | Retry wait time (seconds) | 10 |
 | BATCH_SIZE | Translation batch size | 10 |
 
-## File Structure
+## Project Structure
 ```
 pot-translator/
 ├── src/
+│   ├── __init__.py
 │   ├── main.py        # REST API implementation
 │   ├── translator.py   # Translation logic
 │   └── config.py      # Configuration settings
+├── tests/
+│   ├── __init__.py
+│   ├── conftest.py
+│   ├── test_config.py
+│   ├── test_main.py
+│   └── test_translator.py
 ├── Dockerfile         # Docker configuration
 ├── docker-compose.yml # Docker Compose config
 ├── requirements.txt   # Python dependencies
 └── .env.example      # Environment template
+```
+
+## Dependencies
+
+Main dependencies (see requirements.txt for full list):
+- Flask==2.3.3
+- polib==1.2.0
+- openai==1.59.7
+- python-dotenv==1.0.0
+- pytest==7.4.3
+
+## Development
+
+### Running Tests
+```bash
+# Run all tests with coverage
+python -m pytest tests/ -v --cov=src
+
+# Run specific test file
+python -m pytest tests/test_translator.py -v
+```
+
+### Docker Commands
+```bash
+# Build and run with docker-compose
+docker-compose up --build
+
+# Stop services
+docker-compose down
+
+# Build image separately
+docker build -t pot-translator .
+
+# Run container separately
+docker run -p 5000:5000 -e OPENAI_API_KEY=your-api-key pot-translator
 ```
 
 ## Troubleshooting
@@ -200,25 +241,6 @@ pot-translator/
    Error: Port 5000 already in use
    Solution: Change port in docker-compose.yml
    ```
-
-## Development
-
-### Running Tests
-```bash
-python -m pytest tests/
-```
-
-### Docker Commands
-```bash
-# Build image
-docker build -t pot-translator .
-
-# Run container
-docker run -p 5000:5000 -e OPENAI_API_KEY=your-api-key pot-translator
-
-# Stop services
-docker-compose down
-```
 
 ## License
 
