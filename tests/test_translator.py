@@ -17,21 +17,23 @@ class TestPotTranslator:
         mock_response = MagicMock()
         mock_response.choices = [mock_choice]
         
-        # Створюємо мок для completions
+        # Створюємо мок для chat.completions.create
+        mock_create = MagicMock(return_value=mock_response)
+        
+        # Створюємо мок для chat.completions
         mock_completions = MagicMock()
-        mock_completions.create.return_value = mock_response
+        mock_completions.create = mock_create
         
         # Створюємо мок для chat
         mock_chat = MagicMock()
         mock_chat.completions = mock_completions
         
-        # Створюємо мок для клієнта
+        # Створюємо мок для клієнта OpenAI
         mock_client = MagicMock()
         mock_client.chat = mock_chat
         
-        # Створюємо мок для OpenAI
-        mock_openai = mocker.patch('openai.OpenAI')
-        mock_openai.return_value = mock_client
+        # Патчимо конструктор OpenAI
+        mocker.patch('src.translator.OpenAI', return_value=mock_client)
         
         return mock_client
 
@@ -58,20 +60,34 @@ msgstr ""
 
     def test_translate_batch(self, translator, mock_openai):
         texts = ["Hello", "World"]
-        mock_openai.chat.completions.create.return_value.choices[0].message.content = "Привіт ||| Світ"
-        
         result = translator.translate_batch(texts, "uk")
-        assert isinstance(result, list)
-        assert len(result) == 2
-        assert result == ["Привіт", "Світ"]
         
-        mock_openai.chat.completions.create.assert_called_once()
+        # Перевіряємо, що create було викликано з правильними параметрами
+        mock_openai.chat.completions.create.assert_called_once_with(
+            model=Config.DEFAULT_MODEL,
+            messages=[
+                {"role": "system", "content": "Translate to uk. Each sentence is separated by '|||'."},
+                {"role": "user", "content": "Hello ||| World"}
+            ]
+        )
+        
+        assert result == ["Привіт", "Світ"]
 
     def test_translate_pot_file(self, translator, sample_pot_file, mock_openai, tmp_path):
         with patch('os.makedirs'):
-            mock_openai.chat.completions.create.return_value.choices[0].message.content = "Привіт ||| Світ"
-            
             target_language = "uk"
             output_file = translator.translate_pot_file(sample_pot_file, target_language)
-            assert output_file.endswith(f"{target_language}.po")
-            assert mock_openai.chat.completions.create.called 
+            
+            # Перевіряємо, що create було викликано
+            assert mock_openai.chat.completions.create.called
+            
+            # Перевіряємо параметри виклику
+            mock_openai.chat.completions.create.assert_called_with(
+                model=Config.DEFAULT_MODEL,
+                messages=[
+                    {"role": "system", "content": "Translate to uk. Each sentence is separated by '|||'."},
+                    {"role": "user", "content": "Hello ||| World"}
+                ]
+            )
+            
+            assert output_file.endswith(f"{target_language}.po") 
