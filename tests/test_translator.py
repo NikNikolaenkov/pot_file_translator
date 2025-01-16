@@ -6,7 +6,7 @@ import os
 
 class TestPotTranslator:
     @pytest.fixture
-    def mock_openai_client(self, mocker):
+    def mock_openai(self, mocker):
         # Створюємо мок для відповіді
         mock_message = MagicMock()
         mock_message.content = "Привіт ||| Світ"
@@ -29,15 +29,15 @@ class TestPotTranslator:
         mock_client = MagicMock()
         mock_client.chat = mock_chat
         
-        # Патчимо конструктор
-        mocker.patch('openai.OpenAI', return_value=mock_client)
+        # Патчимо конструктор OpenAI
+        mock_openai_class = mocker.patch('openai.OpenAI')
+        mock_openai_class.return_value = mock_client
         
         return mock_client
 
     @pytest.fixture
-    def translator(self):
-        with patch('openai.OpenAI') as mock_openai:
-            return PotTranslator(api_key="test-key")
+    def translator(self, mock_openai):
+        return PotTranslator(api_key="test-key")
 
     @pytest.fixture
     def sample_pot_file(self, tmp_path):
@@ -56,18 +56,18 @@ msgstr ""
         pot_file.write_text(content)
         return str(pot_file)
 
-    def test_translate_batch(self, translator, mock_openai_client):
+    def test_translate_batch(self, translator, mock_openai):
         texts = ["Hello", "World"]
         result = translator.translate_batch(texts, "uk")
         assert isinstance(result, list)
         assert len(result) == 2
         assert result == ["Привіт", "Світ"]
         
-        mock_openai_client.chat.completions.create.assert_called_once()
+        mock_openai.chat.completions.create.assert_called_once()
 
-    def test_translate_pot_file(self, translator, sample_pot_file, mock_openai_client, tmp_path):
+    def test_translate_pot_file(self, translator, sample_pot_file, mock_openai, tmp_path):
         with patch('os.makedirs'):
             target_language = "uk"
             output_file = translator.translate_pot_file(sample_pot_file, target_language)
             assert output_file.endswith(f"{target_language}.po")
-            assert mock_openai_client.chat.completions.create.called 
+            assert mock_openai.chat.completions.create.called 
