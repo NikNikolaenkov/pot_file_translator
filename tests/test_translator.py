@@ -29,9 +29,9 @@ class TestPotTranslator:
         mock_client = MagicMock()
         mock_client.chat = mock_chat
         
-        # Патчимо конструктор OpenAI
-        mock_openai_class = mocker.patch('openai.OpenAI')
-        mock_openai_class.return_value = mock_client
+        # Патчимо конструктор OpenAI з автоматичним створенням клієнта
+        mock_openai = mocker.patch('openai.OpenAI', autospec=True)
+        mock_openai.return_value = mock_client
         
         return mock_client
 
