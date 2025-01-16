@@ -29,8 +29,8 @@ class TestPotTranslator:
         mock_client = MagicMock()
         mock_client.chat = mock_chat
         
-        # Патчимо конструктор OpenAI з автоматичним створенням клієнта
-        mock_openai = mocker.patch('openai.OpenAI', autospec=True)
+        # Створюємо мок для OpenAI
+        mock_openai = mocker.patch('openai.OpenAI')
         mock_openai.return_value = mock_client
         
         return mock_client
@@ -58,6 +58,8 @@ msgstr ""
 
     def test_translate_batch(self, translator, mock_openai):
         texts = ["Hello", "World"]
+        mock_openai.chat.completions.create.return_value.choices[0].message.content = "Привіт ||| Світ"
+        
         result = translator.translate_batch(texts, "uk")
         assert isinstance(result, list)
         assert len(result) == 2
@@ -67,6 +69,8 @@ msgstr ""
 
     def test_translate_pot_file(self, translator, sample_pot_file, mock_openai, tmp_path):
         with patch('os.makedirs'):
+            mock_openai.chat.completions.create.return_value.choices[0].message.content = "Привіт ||| Світ"
+            
             target_language = "uk"
             output_file = translator.translate_pot_file(sample_pot_file, target_language)
             assert output_file.endswith(f"{target_language}.po")
