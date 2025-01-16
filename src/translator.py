@@ -3,16 +3,20 @@ import time
 import polib
 import logging
 from openai import OpenAI
-from typing import List, Optional
+from typing import List
 from .config import Config
 
 class PotTranslator:
+    """POT file translator using OpenAI API."""
+
     def __init__(self, api_key: str, model: str = Config.DEFAULT_MODEL):
+        """Initialize translator with API key and model."""
         self.client = OpenAI(api_key=api_key)
         self.model = model
         self.setup_logging()
 
     def setup_logging(self):
+        """Configure logging."""
         logging.basicConfig(
             filename="translation.log",
             level=logging.INFO,
@@ -20,14 +24,15 @@ class PotTranslator:
         )
 
     def translate_batch(self, texts: List[str], target_language: str) -> List[str]:
+        """Translate a batch of texts."""
         for attempt in range(Config.MAX_RETRIES):
             try:
                 joined_text = " ||| ".join(texts)
                 response = self.client.chat.completions.create(
                     model=self.model,
                     messages=[
-                        {"role": "system", "content": f"You are a professional translator. Translate the following text into {target_language}. Each sentence is separated by '|||'. Preserve the order."},
-                        {"role": "user", "content": f"Translate the following:\n\n{joined_text}"}
+                        {"role": "system", "content": f"Translate to {target_language}. Each sentence is separated by '|||'."},
+                        {"role": "user", "content": joined_text}
                     ]
                 )
                 translated_batch = response.choices[0].message.content.strip().split(" ||| ")
@@ -43,6 +48,7 @@ class PotTranslator:
                 time.sleep(Config.WAIT_TIME)
 
     def translate_pot_file(self, input_file: str, target_language: str) -> str:
+        """Translate a POT file to the target language."""
         pot = polib.pofile(input_file)
         output_file = os.path.join(Config.DOWNLOAD_FOLDER, f"{target_language}.po")
         
