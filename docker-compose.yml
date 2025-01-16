@@ -4,10 +4,11 @@ services:
   translator:
     build: .
     ports:
-      - "5000:5000"
+      - "${FLASK_PORT:-5000}:5000"
     volumes:
       - ./uploads:/app/uploads
       - ./downloads:/app/downloads
     environment:
       - OPENAI_API_KEY=${OPENAI_API_KEY}
-      - OPENAI_MODEL=${OPENAI_MODEL:-gpt-4} 
+      - OPENAI_MODEL=${OPENAI_MODEL:-gpt-4o}
+      - FLASK_PORT=${FLASK_PORT:-5000} 
