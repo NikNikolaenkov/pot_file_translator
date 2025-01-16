@@ -7,26 +7,37 @@ import os
 class TestPotTranslator:
     @pytest.fixture
     def mock_openai_client(self, mocker):
+        # Створюємо мок для відповіді
         mock_response = Mock()
         mock_response.choices = [
             Mock(message=Mock(content="Привіт ||| Світ"))
         ]
         
-        mock_client = Mock()
-        mock_client.chat.completions.create.return_value = mock_response
+        # Створюємо мок для chat.completions
+        mock_completions = Mock()
+        mock_completions.create.return_value = mock_response
         
-        # Створюємо мок для конструктора OpenAI
-        mock_openai = mocker.patch('openai.OpenAI')
-        mock_openai.return_value = mock_client
+        # Створюємо мок для chat
+        mock_chat = Mock()
+        mock_chat.completions = mock_completions
+        
+        # Створюємо мок для клієнта OpenAI
+        mock_client = Mock()
+        mock_client.chat = mock_chat
+        
+        # Патчимо конструктор OpenAI
+        mocker.patch('openai.OpenAI', return_value=mock_client)
+        
         return mock_client
 
     @pytest.fixture
     def translator(self):
-        with patch.dict(os.environ, {
-            'OPENAI_API_KEY': 'test-key',
-            'OPENAI_MODEL': 'gpt-4o'
-        }):
-            return PotTranslator(api_key="test-key")
+        # Використовуємо patch для обходу ініціалізації реального клієнта
+        with patch('openai.OpenAI') as mock_openai:
+            instance = PotTranslator(api_key="test-key")
+            # Переконуємося, що конструктор був викликаний з правильними параметрами
+            mock_openai.assert_called_once_with(api_key="test-key")
+            return instance
 
     @pytest.fixture
     def sample_pot_file(self, tmp_path):
@@ -51,9 +62,15 @@ msgstr ""
         assert isinstance(result, list)
         assert len(result) == 2
         assert result == ["Привіт", "Світ"]
+        
+        # Перевіряємо, що API був викликаний правильно
+        mock_openai_client.chat.completions.create.assert_called_once()
 
     def test_translate_pot_file(self, translator, sample_pot_file, mock_openai_client, tmp_path):
         with patch('os.makedirs'):
             target_language = "uk"
             output_file = translator.translate_pot_file(sample_pot_file, target_language)
-            assert output_file.endswith(f"{target_language}.po") 
+            assert output_file.endswith(f"{target_language}.po")
+            
+            # Перевіряємо, що API був викликаний
+            assert mock_openai_client.chat.completions.create.called 

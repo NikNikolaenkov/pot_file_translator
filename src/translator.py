@@ -11,9 +11,13 @@ class PotTranslator:
 
     def __init__(self, api_key: str, model: str = Config.DEFAULT_MODEL):
         """Initialize translator with API key and model."""
-        self.client = OpenAI(api_key=api_key)
-        self.model = model
-        self.setup_logging()
+        try:
+            self.client = OpenAI(api_key=api_key)
+            self.model = model
+            self.setup_logging()
+        except Exception as e:
+            logging.error(f"Failed to initialize OpenAI client: {str(e)}")
+            raise
 
     def setup_logging(self):
         """Configure logging."""
@@ -25,6 +29,9 @@ class PotTranslator:
 
     def translate_batch(self, texts: List[str], target_language: str) -> List[str]:
         """Translate a batch of texts."""
+        if not texts:
+            return []
+
         for attempt in range(Config.MAX_RETRIES):
             try:
                 joined_text = " ||| ".join(texts)
@@ -53,29 +60,33 @@ class PotTranslator:
 
     def translate_pot_file(self, input_file: str, target_language: str) -> str:
         """Translate a POT file to the target language."""
-        pot = polib.pofile(input_file)
-        output_file = os.path.join(Config.DOWNLOAD_FOLDER, f"{target_language}.po")
-        
-        batch = []
-        batch_entries = []
-        
-        for entry in pot:
-            if not entry.msgstr:
-                batch.append(entry.msgid)
-                batch_entries.append(entry)
-                
-                if len(batch) >= Config.BATCH_SIZE:
-                    translations = self.translate_batch(batch, target_language)
-                    for entry, translation in zip(batch_entries, translations):
-                        entry.msgstr = translation
-                    batch.clear()
-                    batch_entries.clear()
-        
-        if batch:
-            translations = self.translate_batch(batch, target_language)
-            for entry, translation in zip(batch_entries, translations):
-                entry.msgstr = translation
-        
-        os.makedirs(Config.DOWNLOAD_FOLDER, exist_ok=True)
-        pot.save(output_file)
-        return output_file 
+        try:
+            pot = polib.pofile(input_file)
+            output_file = os.path.join(Config.DOWNLOAD_FOLDER, f"{target_language}.po")
+            
+            batch = []
+            batch_entries = []
+            
+            for entry in pot:
+                if not entry.msgstr:
+                    batch.append(entry.msgid)
+                    batch_entries.append(entry)
+                    
+                    if len(batch) >= Config.BATCH_SIZE:
+                        translations = self.translate_batch(batch, target_language)
+                        for entry, translation in zip(batch_entries, translations):
+                            entry.msgstr = translation
+                        batch.clear()
+                        batch_entries.clear()
+            
+            if batch:
+                translations = self.translate_batch(batch, target_language)
+                for entry, translation in zip(batch_entries, translations):
+                    entry.msgstr = translation
+            
+            os.makedirs(Config.DOWNLOAD_FOLDER, exist_ok=True)
+            pot.save(output_file)
+            return output_file
+        except Exception as e:
+            logging.error(f"Failed to translate POT file: {str(e)}")
+            raise 
