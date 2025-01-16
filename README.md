@@ -62,7 +62,7 @@ The service provides a single endpoint for translation:
 | api_key | string | Your OpenAI API key |
 | target_language | string | Two-letter language code (e.g., 'uk', 'es', 'de') |
 | file | file | POT file to translate |
-| model | string | (Optional) OpenAI model name (default: gpt-4) |
+| model | string | (Optional) OpenAI model name (default: gpt-4o) |
 
 #### Example Requests:
 
@@ -71,7 +71,7 @@ The service provides a single endpoint for translation:
 curl -X POST http://localhost:5000/translate \
      -F "api_key=your-api-key" \
      -F "target_language=uk" \
-     -F "model=gpt-4" \
+     -F "model=gpt-4o" \
      -F "file=@path/to/your/main.pot"
 ```
 
@@ -89,7 +89,7 @@ files = {
 data = {
     'api_key': 'your-api-key',
     'target_language': 'uk',
-    'model': 'gpt-4'  # optional
+    'model': 'gpt-4o'  # optional
 }
 
 # Send request
