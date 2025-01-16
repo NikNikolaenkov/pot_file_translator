@@ -1,4 +1,4 @@
-# POT File Translator
+# POT File Translator OpenAI's
 
 A service for automatic translation of POT localization files using OpenAI GPT. This service helps translate localization files (.pot) into different languages using OpenAI's powerful language models.
 
