@@ -1,7 +1,7 @@
 from flask import Flask, request, send_file, jsonify
 import os
-from .translator import PotTranslator
-from .config import Config
+from src.translator import PotTranslator
+from src.config import Config
 
 app = Flask(__name__)
 
