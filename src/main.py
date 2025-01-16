@@ -1,9 +1,10 @@
-from flask import Flask, request, send_file, jsonify
+from flask import Flask, request, send_file, jsonify, make_response
 import os
 import requests
 from urllib.parse import urlparse
 from src.translator import PotTranslator
 from src.config import Config
+import io
 
 app = Flask(__name__)
 
@@ -71,13 +72,19 @@ def translate():
             file.save(input_path)
 
         translator = PotTranslator(api_key=api_key, model=model)
-        output_file = translator.translate_pot_file(input_path, target_language)
+        content, filename = translator.translate_pot_file(input_path, target_language)
 
-        return send_file(
-            output_file,
-            as_attachment=True,
-            download_name=f"{target_language}.po"
-        )
+        # Видаляємо вхідний файл
+        try:
+            os.remove(input_path)
+        except:
+            pass
+
+        # Повертаємо файл як відповідь
+        response = make_response(content)
+        response.headers['Content-Type'] = 'application/x-gettext'
+        response.headers['Content-Disposition'] = f'attachment; filename={filename}'
+        return response
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500

@@ -16,6 +16,7 @@ Nikolaenkov (NikNikolaenkov@gmail.com)
 - 🐳 Docker support
 - 🌐 Support for remote file loading via URL
 - ⚙️ Configurable port settings
+- 📥 Direct file download response
 
 ## Installation
 
@@ -61,9 +62,10 @@ docker-compose up --build
 
 ### Translating a POT File
 
-The service provides a single endpoint for translation:
+The service provides a single endpoint for translation that accepts only POST requests with multipart/form-data:
 
 **Endpoint:** `POST /translate`
+**Content-Type:** `multipart/form-data`
 
 #### Required Parameters:
 
@@ -77,20 +79,22 @@ The service provides a single endpoint for translation:
 
 #### Example Requests:
 
-1. Using curl with local file:
+1. Using curl with local file and saving response:
 ```bash
-curl -X POST http://localhost:5000/translate \
-     -F "api_key=your-api-key" \
-     -F "target_language=uk" \
-     -F "file=@path/to/your/main.pot"
+curl --location 'http://localhost:5000/translate' \
+     --form 'api_key=your-api-key' \
+     --form 'target_language=uk' \
+     --form 'file=@path/to/your/main.pot' \
+     --output translated.po
 ```
 
-2. Using curl with remote file:
+2. Using curl with remote file and saving response:
 ```bash
-curl -X POST http://localhost:5000/translate \
-     -F "api_key=your-api-key" \
-     -F "target_language=uk" \
-     -F "file_url=https://example.com/path/to/main.pot"
+curl --location 'http://localhost:5000/translate' \
+     --form 'api_key=your-api-key' \
+     --form 'target_language=uk' \
+     --form 'file_url=https://example.com/path/to/main.pot' \
+     --output translated.po
 ```
 
 3. Using Python requests with local file:
@@ -110,6 +114,7 @@ data = {
 response = requests.post(url, files=files, data=data)
 
 if response.status_code == 200:
+    # Зберігаємо отриманий файл
     with open('translated.po', 'wb') as f:
         f.write(response.content)
     print("Translation successful!")
@@ -131,6 +136,7 @@ data = {
 response = requests.post(url, data=data)
 
 if response.status_code == 200:
+    # Зберігаємо отриманий файл
     with open('translated.po', 'wb') as f:
         f.write(response.content)
     print("Translation successful!")
@@ -150,15 +156,19 @@ fetch('http://localhost:5000/translate', {
     body: formData
 })
 .then(response => {
-    if (response.ok) return response.blob();
-    return response.json().then(err => Promise.reject(err));
+    if (!response.ok) {
+        return response.json().then(err => Promise.reject(err));
+    }
+    return response.blob();
 })
 .then(blob => {
+    // Зберігаємо отриманий файл
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
     a.download = 'translated.po';
     a.click();
+    window.URL.revokeObjectURL(url);
 })
 .catch(error => console.error('Error:', error));
 ```
@@ -175,15 +185,19 @@ fetch('http://localhost:5000/translate', {
     body: formData
 })
 .then(response => {
-    if (response.ok) return response.blob();
-    return response.json().then(err => Promise.reject(err));
+    if (!response.ok) {
+        return response.json().then(err => Promise.reject(err));
+    }
+    return response.blob();
 })
 .then(blob => {
+    // Зберігаємо отриманий файл
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
     a.download = 'translated.po';
     a.click();
+    window.URL.revokeObjectURL(url);
 })
 .catch(error => console.error('Error:', error));
 ```
@@ -192,7 +206,8 @@ fetch('http://localhost:5000/translate', {
 
 Success (200):
 - Content-Type: application/x-gettext
-- Body: Translated PO file content
+- Content-Disposition: attachment; filename=uk.po
+- Body: Translated PO file content (binary)
 
 Error (400/500):
 ```json

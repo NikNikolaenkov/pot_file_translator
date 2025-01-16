@@ -3,7 +3,7 @@ import time
 import polib
 import logging
 from openai import OpenAI
-from typing import List
+from typing import List, Tuple
 from .config import Config
 
 class PotTranslator:
@@ -60,11 +60,10 @@ class PotTranslator:
         
         return texts
 
-    def translate_pot_file(self, input_file: str, target_language: str) -> str:
-        """Translate a POT file to the target language."""
+    def translate_pot_file(self, input_file: str, target_language: str) -> Tuple[bytes, str]:
+        """Translate a POT file to the target language and return content and filename."""
         try:
             pot = polib.pofile(input_file)
-            output_file = os.path.join(Config.DOWNLOAD_FOLDER, f"{target_language}.po")
             
             batch = []
             batch_entries = []
@@ -86,9 +85,23 @@ class PotTranslator:
                 for entry, translation in zip(batch_entries, translations):
                     entry.msgstr = translation
             
+            # Створюємо тимчасовий файл для збереження
+            output_file = os.path.join(Config.DOWNLOAD_FOLDER, f"{target_language}.po")
             os.makedirs(Config.DOWNLOAD_FOLDER, exist_ok=True)
             pot.save(output_file)
-            return output_file
+            
+            # Читаємо вміст файлу
+            with open(output_file, 'rb') as f:
+                content = f.read()
+            
+            # Видаляємо тимчасовий файл
+            try:
+                os.remove(output_file)
+            except:
+                pass
+                
+            return content, f"{target_language}.po"
+            
         except Exception as e:
             logging.error(f"Failed to translate POT file: {str(e)}")
             raise 
