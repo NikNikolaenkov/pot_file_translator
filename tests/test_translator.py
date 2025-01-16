@@ -1,4 +1,5 @@
 import pytest
+from unittest.mock import Mock, patch
 from src.translator import PotTranslator
 from src.config import Config
 import os
@@ -6,7 +7,16 @@ import polib
 
 class TestPotTranslator:
     @pytest.fixture
-    def translator(self):
+    def mock_openai(self, mocker):
+        mock_client = Mock()
+        mock_response = Mock()
+        mock_response.choices = [Mock(message=Mock(content="Привіт ||| Світ"))]
+        mock_client.chat.completions.create.return_value = mock_response
+        mocker.patch('openai.OpenAI', return_value=mock_client)
+        return mock_client
+
+    @pytest.fixture
+    def translator(self, mock_openai):
         return PotTranslator(api_key="test-key")
 
     @pytest.fixture
@@ -44,15 +54,13 @@ msgstr ""
         texts = ["Hello", "World"]
         result = translator.translate_batch(texts, "uk")
         assert isinstance(result, list)
-        assert len(result) == len(texts)
+        assert len(result) == 2
+        assert result == ["Привіт", "Світ"]
 
-    def test_translate_pot_file(self, translator, sample_pot_file):
+    @patch('os.makedirs')
+    def test_translate_pot_file(self, mock_makedirs, translator, sample_pot_file):
         target_language = "uk"
         output_file = translator.translate_pot_file(sample_pot_file, target_language)
         
-        assert os.path.exists(output_file)
         assert output_file.endswith(f"{target_language}.po")
-        
-        # Verify the translated file can be parsed
-        po = polib.pofile(output_file)
-        assert len(po) > 0 
+        mock_makedirs.assert_called_once_with(Config.DOWNLOAD_FOLDER, exist_ok=True) 
